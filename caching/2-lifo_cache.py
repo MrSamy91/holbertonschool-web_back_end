@@ -1,17 +1,17 @@
 #!/usr/bin/python3
-""" FIFOCache module
+""" LIFOCache module
 """
 from base_caching import BaseCaching
 
 
-class FIFOCache(BaseCaching):
-    """ FIFOCache class that inherits from BaseCaching
+class LIFOCache(BaseCaching):
+    """ LIFOCache class that inherits from BaseCaching
     """
     def __init__(self):
-        """ Initialize FIFOCache
+        """ Initialize LIFOCache
         """
         super().__init__()
-        self.queue = []  # Pour garder l'ordre d'insertion
+        self.stack = []  # Pour garder l'ordre d'insertion
 
     def put(self, key, item):
         """ Add an item in the cache
@@ -19,13 +19,14 @@ class FIFOCache(BaseCaching):
         if key is not None and item is not None:
             if len(self.cache_data) >= BaseCaching.MAX_ITEMS and key not in self.cache_data:
                 # Si le cache est plein et la clé n'existe pas déjà
-                first_key = self.queue.pop(0)  # Retire le premier élément
-                del self.cache_data[first_key]
-                print(f"DISCARD: {first_key}")
+                last_key = self.stack.pop()  # Retire le dernier élément
+                del self.cache_data[last_key]
+                print(f"DISCARD: {last_key}")
             
+            if key in self.cache_data:
+                self.stack.remove(key)
             self.cache_data[key] = item
-            if key not in self.queue:
-                self.queue.append(key)  # Ajoute la nouvelle clé à la fin
+            self.stack.append(key)  # Ajoute la nouvelle clé à la fin
 
     def get(self, key):
         """ Get an item by key
