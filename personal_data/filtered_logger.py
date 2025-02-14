@@ -103,3 +103,26 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
     )
     
     return connection
+
+
+def main() -> None:
+    """
+    Main function to retrieve and display filtered user data from database.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM users;")
+    
+    logger = get_logger()
+    
+    for row in cursor:
+        fields = ['name', 'email', 'phone', 'ssn', 'password', 'ip', 'last_login', 'user_agent']
+        message = '; '.join(f"{fields[i]}={row[i]}" for i in range(len(fields)))
+        logger.info(message)
+
+    cursor.close()
+    db.close()
+
+
+if __name__ == '__main__':
+    main()
