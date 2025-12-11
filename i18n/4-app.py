@@ -17,7 +17,7 @@ babel = Babel(app)
 
 
 @babel.localeselector
-def get_locale():
+def get_locale() -> str:
     """ Locale language
 
         Return:
@@ -32,7 +32,7 @@ def get_locale():
 
 
 @app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world():
+def hello_world() -> str:
     """ Greeting
 
         Return:

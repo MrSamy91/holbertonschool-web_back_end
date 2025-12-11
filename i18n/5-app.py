@@ -26,11 +26,10 @@ babel = Babel(app)
 
 
 @app.before_request
-def before_request(login_as: int = None):
+def before_request() -> None:
     """ Request of each function
     """
-    user: dict = get_user()
-    print(user)
+    user = get_user()
     g.user = user
 
 
@@ -44,14 +43,11 @@ def get_user() -> Union[dict, None]:
     if login_user is None:
         return None
 
-    user: dict = {}
-    user[login_user] = users.get(int(login_user))
-
-    return user[login_user]
+    return users.get(int(login_user))
 
 
 @babel.localeselector
-def get_locale():
+def get_locale() -> str:
     """ Locale language
 
         Return:
@@ -66,7 +62,7 @@ def get_locale():
 
 
 @app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world():
+def hello_world() -> str:
     """ Greeting
 
         Return:

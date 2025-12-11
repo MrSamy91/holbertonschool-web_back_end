@@ -17,7 +17,7 @@ babel = Babel(app)
 
 
 @babel.localeselector
-def get_locale():
+def get_locale() -> str:
     """ Locale language
 
         Return:
@@ -27,13 +27,13 @@ def get_locale():
 
 
 @app.route('/', strict_slashes=False)
-def hello_world():
+def hello_world() -> str:
     """ Greeting
 
         Return:
             Initial template html
     """
-    return render_template('1-index.html')
+    return render_template('2-index.html')
 
 
 if __name__ == "__main__":

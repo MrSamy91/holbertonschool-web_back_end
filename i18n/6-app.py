@@ -26,10 +26,10 @@ babel = Babel(app)
 
 
 @app.before_request
-def before_request(login_as: int = None):
+def before_request() -> None:
     """ Request of each function
     """
-    user: dict = get_user()
+    user = get_user()
     g.user = user
 
 
@@ -43,33 +43,42 @@ def get_user() -> Union[dict, None]:
     if login_user is None:
         return None
 
-    user: dict = {}
-    user[login_user] = users.get(int(login_user))
-
-    return user[login_user]
+    return users.get(int(login_user))
 
 
 @babel.localeselector
-def get_locale():
+def get_locale() -> str:
     """ Locale language
 
         Return:
             Best match to the language
+
+        Priority order:
+            1. Locale from URL parameters
+            2. Locale from user settings
+            3. Locale from request header
+            4. Default locale
     """
+    # 1. Locale from URL parameters
     locale = request.args.get('locale', None)
-
     if locale and locale in app.config['LANGUAGES']:
         return locale
 
-    locale = request.headers.get('locale', None)
-    if locale and locale in app.config['LANGUAGES']:
+    # 2. Locale from user settings
+    if g.user and g.user.get('locale') in app.config['LANGUAGES']:
+        return g.user.get('locale')
+
+    # 3. Locale from request header
+    locale = request.accept_languages.best_match(app.config['LANGUAGES'])
+    if locale:
         return locale
 
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
+    # 4. Default locale
+    return app.config['BABEL_DEFAULT_LOCALE']
 
 
 @app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world():
+def hello_world() -> str:
     """ Greeting
 
         Return:
