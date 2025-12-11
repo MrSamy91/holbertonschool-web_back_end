@@ -1,10 +1,30 @@
 #!/usr/bin/env python3
-""" Basic Babel setup """
+"""
+Flask app: mock login + translated messages.
+
+- Mock users via ?login_as=<id>
+- Store current user in flask.g.user (or None)
+- Force locale via ?locale=fr|en, else use Accept-Language
+"""
 from flask import Flask, render_template, request, g
-from flask_babel import Babel, _
-from typing import Union
+from flask_babel import Babel
 
 
+class Config:
+    """
+    Application configuration for Flask-Babel.
+
+    Attributes:
+        LANGUAGES (list[str]): Supported locales.
+        BABEL_DEFAULT_LOCALE (str): Fallback locale.
+        BABEL_DEFAULT_TIMEZONE (str): Default timezone.
+    """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
+# Mock "database" of users
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
     2: {"name": "Beyonce", "locale": "en", "timezone": "US/Central"},
@@ -12,64 +32,50 @@ users = {
     4: {"name": "Teletubby", "locale": None, "timezone": "Europe/London"},
 }
 
-
-class Config(object):
-    """ Configuration Babel """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-    BABEL_DEFAULT_LOCALE = 'en'
-
-
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 app.config.from_object(Config)
-babel = Babel(app)
+
+babel = Babel()
+
+
+def get_locale():
+    """
+    Locale selector: URL param takes precedence, else Accept-Language.
+    """
+    forced = request.args.get("locale", type=str)
+    if forced in app.config["LANGUAGES"]:
+        return forced
+    return request.accept_languages.best_match(app.config["LANGUAGES"])
+
+
+babel.init_app(app, locale_selector=get_locale)
+
+
+def get_user():
+    """
+    Return the mocked user dict from ?login_as=<id>, or None.
+    """
+    uid = request.args.get("login_as", type=int)
+    if uid and uid in users:
+        return users[uid]
+    return None
 
 
 @app.before_request
-def before_request() -> None:
-    """ Request of each function
+def before_request():
     """
-    user = get_user()
-    g.user = user
-
-
-def get_user() -> Union[dict, None]:
-    """ Get the user of the dict
-
-        Return User
+    Run before each request. Attach current user (if any) to flask.g.
     """
-    login_user = request.args.get('login_as', None)
-
-    if login_user is None:
-        return None
-
-    return users.get(int(login_user))
+    g.user = get_user()
 
 
-@babel.localeselector
-def get_locale() -> str:
-    """ Locale language
-
-        Return:
-            Best match to the language
+@app.route("/")
+def index():
     """
-    locale = request.args.get('locale', None)
-
-    if locale and locale in app.config['LANGUAGES']:
-        return locale
-
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
-
-
-@app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world() -> str:
-    """ Greeting
-
-        Return:
-            Initial template html
+    Render translated home page for step 5.
     """
-    return render_template('5-index.html')
+    return render_template("5-index.html")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+    app.run(host="0.0.0.0", port=5000)

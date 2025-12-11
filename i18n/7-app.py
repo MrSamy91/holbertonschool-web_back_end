@@ -1,125 +1,129 @@
 #!/usr/bin/env python3
-""" Basic Babel setup """
+"""
+Flask app: locale + timezone selection with Flask-Babel.
+
+Priority rules:
+- Locale: URL (?locale) > user setting > Accept-Language > default
+- Timezone: URL (?timezone) > user setting > default ("UTC")
+"""
 from flask import Flask, render_template, request, g
-from flask_babel import Babel, _
-from typing import Union
+from flask_babel import Babel
 import pytz
+from pytz.exceptions import UnknownTimeZoneError
 
 
+class Config:
+    """
+    App config for Flask-Babel.
+
+    Attributes:
+        LANGUAGES (list[str]): Supported locales.
+        BABEL_DEFAULT_LOCALE (str): Fallback locale.
+        BABEL_DEFAULT_TIMEZONE (str): Default timezone ("UTC").
+    """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
+# Mock users database
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
     2: {"name": "Beyonce", "locale": "en", "timezone": "US/Central"},
-    3: {"name": "Spock", "locale": "kg", "timezone": "Vulcan"},
+    3: {"name": "Spock", "locale": "kg", "timezone": "Vulcan"},  # invalid/unsupported
     4: {"name": "Teletubby", "locale": None, "timezone": "Europe/London"},
 }
 
-
-class Config(object):
-    """ Configuration Babel """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-    BABEL_DEFAULT_LOCALE = 'en'
-
-
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 app.config.from_object(Config)
-babel = Babel(app)
+
+babel = Babel()
+
+
+def get_user():
+    """
+    Return mocked user dict from ?login_as=<id>, else None.
+    """
+    uid = request.args.get("login_as", type=int)
+    return users.get(uid) if uid in users else None
 
 
 @app.before_request
-def before_request() -> None:
-    """ Request of each function
+def before_request():
     """
-    user = get_user()
-    g.user = user
-
-
-def get_user() -> Union[dict, None]:
-    """ Get the user of the dict
-
-        Return User
+    Attach current user to flask.g for this request.
     """
-    login_user = request.args.get('login_as', None)
-
-    if login_user is None:
-        return None
-
-    return users.get(int(login_user))
+    g.user = get_user()
 
 
-@babel.localeselector
-def get_locale() -> str:
-    """ Locale language
-
-        Return:
-            Best match to the language
-
-        Priority order:
-            1. Locale from URL parameters
-            2. Locale from user settings
-            3. Locale from request header
-            4. Default locale
+def get_locale():
     """
-    # 1. Locale from URL parameters
-    locale = request.args.get('locale', None)
-    if locale and locale in app.config['LANGUAGES']:
-        return locale
-
-    # 2. Locale from user settings
-    if g.user and g.user.get('locale') in app.config['LANGUAGES']:
-        return g.user.get('locale')
-
-    # 3. Locale from request header
-    locale = request.accept_languages.best_match(app.config['LANGUAGES'])
-    if locale:
-        return locale
-
-    # 4. Default locale
-    return app.config['BABEL_DEFAULT_LOCALE']
-
-
-@babel.timezoneselector
-def get_timezone() -> str:
-    """ Get timezone
-
-        Priority order:
-            1. Find timezone parameter in URL parameters
-            2. Find time zone from user settings
-            3. Default to UTC
-
-        Return:
-            Timezone or Default UTC
+    Locale selector with priority:
+    URL param -> user setting -> Accept-Language -> default.
     """
-    # 1. Timezone from URL parameters
-    timezone = request.args.get('timezone', None)
-    if timezone:
+    # 1) URL param
+    forced = request.args.get("locale", type=str)
+    if forced in app.config["LANGUAGES"]:
+        return forced
+
+    # 2) User setting
+    user = getattr(g, "user", None)
+    if user:
+        uloc = user.get("locale")
+        if uloc in app.config["LANGUAGES"]:
+            return uloc
+
+    # 3) Accept-Language header
+    match = request.accept_languages.best_match(app.config["LANGUAGES"])
+    if match:
+        return match
+
+    # 4) Default
+    return app.config["BABEL_DEFAULT_LOCALE"]
+
+
+def get_timezone():
+    """
+    Timezone selector with priority:
+    URL param -> user setting -> default ("UTC").
+
+    Validates provided timezones using pytz.timezone.
+    """
+    # 1) URL param
+    tz = request.args.get("timezone", type=str)
+    if tz:
         try:
-            pytz.timezone(timezone)
-            return timezone
-        except pytz.exceptions.UnknownTimeZoneError:
-            pass
+            pytz.timezone(tz)
+            return tz
+        except UnknownTimeZoneError:
+            pass  # ignore invalid URL-provided timezone
 
-    # 2. Timezone from user settings
-    if g.user and g.user.get('timezone'):
-        try:
-            pytz.timezone(g.user.get('timezone'))
-            return g.user.get('timezone')
-        except pytz.exceptions.UnknownTimeZoneError:
-            pass
+    # 2) User setting
+    user = getattr(g, "user", None)
+    if user:
+        utz = user.get("timezone")
+        if utz:
+            try:
+                pytz.timezone(utz)
+                return utz
+            except UnknownTimeZoneError:
+                pass  # ignore invalid user timezone (e.g., "Vulcan")
 
-    # 3. Default to UTC
-    return app.config['BABEL_DEFAULT_TIMEZONE']
+    # 3) Default
+    return app.config["BABEL_DEFAULT_TIMEZONE"]
 
 
-@app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world() -> str:
-    """ Greeting
+# Bind Babel with our selectors
+babel.init_app(app, locale_selector=get_locale, timezone_selector=get_timezone)
 
-        Return:
-            Initial template html
+
+@app.route("/")
+def index():
     """
-    return render_template('7-index.html')
+    Render translated home page for step 7.
+    """
+    return render_template("7-index.html")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+    app.run(host="0.0.0.0", port=5000)

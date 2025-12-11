@@ -1,47 +1,33 @@
-<p>
-<img width="260" height="170" src="https://www.flaticon.com/svg/static/icons/svg/2206/2206461.svg" align="right" >
-</p>
+# Projet Flask i18n - Internationalisation avec Flask-Babel
 
-# :colombia: 0x0A. i18n
+## Description
 
-- Learn how to parametrize Flask templates to display different languages
-- Learn how to infer the correct locale based on URL parameters, user settings or request headers
-- Learn how to localize timestamps
+Ce projet est une application Flask simple destinée à apprendre et implémenter l'internationalisation (i18n) dans une application web.  
+Il utilise l'extension **Flask-Babel** pour gérer la traduction des contenus et la localisation, notamment la détection automatique de la langue préférée de l'utilisateur, la gestion des paramètres régionaux, et la localisation des timestamps.
 
-## Prerequisites
+---
 
-- All your files will be interpreted/compiled on Ubuntu 18.04 LTS using python3 `(version 3.7)`
-- All your files should end with a new line
-- A README.md file, at the root of the folder of the project, is mandatory
-- Your code should use the pycodestyle style `(version 2.5)`
-- The first line of all your files should be exactly `#!/usr/bin/env python3`
-- All your \*.py files should be executable
-- All your modules should have a documentation `(python3 -c 'print(__import__("my_module").__doc__)')`
-- All your classes should have a documentation `(python3 -c 'print(__import__("my_module").MyClass.__doc__)')`
-- All your functions and methods should have a documentation `(python3 -c 'print(__import__("my_module").my_function.__doc__)'` and `python3 -c 'print(__import__("my_module").MyClass.my_function.__doc__)')`
-- A documentation is not a simple word, it’s a real sentence explaining what’s the purpose of the module, class or method (the length of it will be verified)
-- All your functions and coroutines must be type-annotated.
+## Objectifs pédagogiques
 
-## Run
+- Comprendre comment paramétrer des templates Flask pour afficher du contenu dans différentes langues.
+- Apprendre à déterminer la locale (langue) à utiliser en fonction des paramètres URL, des préférences utilisateur ou des en-têtes HTTP.
+- Localiser les dates et heures selon les fuseaux horaires adaptés.
+- Maîtriser l'utilisation de Flask-Babel et la gestion des fichiers de traduction `.po` et `.mo`.
 
-```
-$ Python3.7 ./app.py
-```
+---
 
-## Files
+## Technologies et outils utilisés
 
-| Files            | Description                     |
-| ---------------- | ------------------------------- |
-| **0-app.py**     | Basic Flask app                 |
-| **1-app.py**     | Basic Babel setup               |
-| **2-app.py**     | Get locale from request         |
-| **3-app.py**     | Parametrize templates           |
-| **4-app.py**     | Force locale with URL parameter |
-| **5-app.py**     | Mock logging in                 |
-| **6-app.py**     | Use user locale                 |
-| **7-app.py**     | Infer appropriate time zone     |
-| **app.py**       | Display the current time        |
-| **babel.cfg**    | Configuration babel             |
-| **translations** | Translations of babel           |
-| **messages.pot** | Logs babel                      |
-| **templates**    | Templates                       |
+- Python 3.9
+- Flask (micro-framework web)
+- Flask-Babel (extension pour la gestion des langues)
+- pytz (gestion des fuseaux horaires)
+- pybabel (outil de gestion des traductions)
+- Ubuntu 20.04 LTS (environnement d'exécution)
+
+---
+
+## Structure du projet
+
+- `*.py` : fichiers source Python des différentes étapes du projet.
+- `templates/` : dossiers contenant les fichiers HTML u

@@ -1,91 +1,95 @@
 #!/usr/bin/env python3
-""" Basic Babel setup """
+"""
+Flask app: locale priority (URL > user setting > headers > default).
+
+- Mock users via ?login_as=<id>
+- Store current user in flask.g.user
+- Locale selection order:
+  1) ?locale=fr|en
+  2) g.user["locale"] if supported
+  3) Accept-Language best match
+  4) Default ("en")
+"""
 from flask import Flask, render_template, request, g
-from flask_babel import Babel, _
-from typing import Union
+from flask_babel import Babel
 
 
+class Config:
+    """
+    App config for Flask-Babel.
+    """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
+# Mock users database
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
     2: {"name": "Beyonce", "locale": "en", "timezone": "US/Central"},
-    3: {"name": "Spock", "locale": "kg", "timezone": "Vulcan"},
+    3: {"name": "Spock", "locale": "kg", "timezone": "Vulcan"},  # invalid/unsu
     4: {"name": "Teletubby", "locale": None, "timezone": "Europe/London"},
 }
 
-
-class Config(object):
-    """ Configuration Babel """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-    BABEL_DEFAULT_LOCALE = 'en'
-
-
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 app.config.from_object(Config)
-babel = Babel(app)
+
+babel = Babel()
+
+
+def get_user():
+    """
+    Return mocked user dict from ?login_as=<id>, else None.
+    """
+    uid = request.args.get("login_as", type=int)
+    return users.get(uid) if uid in users else None
 
 
 @app.before_request
-def before_request() -> None:
-    """ Request of each function
+def before_request():
     """
-    user = get_user()
-    g.user = user
-
-
-def get_user() -> Union[dict, None]:
-    """ Get the user of the dict
-
-        Return User
+    Attach current user to flask.g for this request.
     """
-    login_user = request.args.get('login_as', None)
-
-    if login_user is None:
-        return None
-
-    return users.get(int(login_user))
+    g.user = get_user()
 
 
-@babel.localeselector
-def get_locale() -> str:
-    """ Locale language
-
-        Return:
-            Best match to the language
-
-        Priority order:
-            1. Locale from URL parameters
-            2. Locale from user settings
-            3. Locale from request header
-            4. Default locale
+def get_locale():
     """
-    # 1. Locale from URL parameters
-    locale = request.args.get('locale', None)
-    if locale and locale in app.config['LANGUAGES']:
-        return locale
-
-    # 2. Locale from user settings
-    if g.user and g.user.get('locale') in app.config['LANGUAGES']:
-        return g.user.get('locale')
-
-    # 3. Locale from request header
-    locale = request.accept_languages.best_match(app.config['LANGUAGES'])
-    if locale:
-        return locale
-
-    # 4. Default locale
-    return app.config['BABEL_DEFAULT_LOCALE']
-
-
-@app.route('/', methods=['GET'], strict_slashes=False)
-def hello_world() -> str:
-    """ Greeting
-
-        Return:
-            Initial template html
+    Locale selector with priority:
+    URL param -> user setting -> Accept-Language -> default.
     """
-    return render_template('6-index.html')
+    # 1) URL param
+    forced = request.args.get("locale", type=str)
+    if forced in app.config["LANGUAGES"]:
+        return forced
+
+    # 2) User setting
+    user = getattr(g, "user", None)
+    if user:
+        uloc = user.get("locale")
+        if uloc in app.config["LANGUAGES"]:
+            return uloc
+
+    # 3) Accept-Language header
+    match = request.accept_languages.best_match(app.config["LANGUAGES"])
+    if match:
+        return match
+
+    # 4) Default
+    return app.config["BABEL_DEFAULT_LOCALE"]
+
+
+# Bind Babel with our selector
+babel.init_app(app, locale_selector=get_locale)
+
+
+@app.route("/")
+def index():
+    """
+    Render translated home page for step 6.
+    """
+    return render_template("6-index.html")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+    app.run(host="0.0.0.0", port=5000)
